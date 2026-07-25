@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface_background">
+
+    <com.zx.smartring.ui.widget.WaveHeaderView
+        android:layout_width="match_parent"
+        android:layout_height="174dp" />
+
+    <TextView
+        android:id="@+id/profile_avatar_prayer"
+        android:layout_width="58dp"
+        android:layout_height="58dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/bg_circle_avatar"
+        android:clickable="true"
+        android:contentDescription="@string/profile_open_account"
+        android:focusable="true"
+        android:gravity="center"
+        android:text="@string/icon_avatar"
+        android:textColor="@color/yellow"
+        android:textSize="28sp" />
+
+    <TextView
+        android:id="@+id/profile_name_prayer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="82dp"
+        android:text="@string/profile_guest"
+        android:textColor="@color/white"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/prayer_mode_button"
+        android:layout_width="110dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="48dp"
+        android:layout_marginTop="135dp"
+        android:background="@drawable/bg_pill_active"
+        android:clickable="true"
+        android:elevation="5dp"
+        android:focusable="true"
+        android:gravity="center"
+        android:text="@string/prayer_mode"
+        android:textColor="@color/white"
+        android:textSize="17sp" />
+
+    <TextView
+        android:id="@+id/direction_mode_button"
+        android:layout_width="110dp"
+        android:layout_height="44dp"
+        android:layout_gravity="end"
+        android:layout_marginTop="135dp"
+        android:layout_marginEnd="48dp"
+        android:background="@drawable/bg_pill_inactive"
+        android:clickable="true"
+        android:elevation="5dp"
+        android:focusable="true"
+        android:gravity="center"
+        android:text="@string/direction_mode"
+        android:textColor="@color/pill_active"
+        android:textSize="17sp" />
+
+    <LinearLayout
+        android:id="@+id/prayer_times_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="190dp"
+        android:layout_marginBottom="64dp"
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp">
+
+        <FrameLayout
+            style="@style/ZikrCard"
+            android:layout_height="116dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/current_time"
+                    android:textColor="@color/dark"
+                    android:textSize="30sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/time_offset"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:text="@string/current_date"
+                    android:textColor="#4B4F56"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="190dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/current_prayer"
+                    android:textColor="@color/dark"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="13dp"
+                    android:text="@string/islamic_date"
+                    android:textColor="#4B4F56"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </FrameLayout>
+
+        <LinearLayout
+            style="@style/ZikrCard"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp">
+
+            <LinearLayout
+                android:id="@+id/row_fajr"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:paddingStart="70dp"
+                android:paddingEnd="8dp">
+
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/fajr" android:textColor="@color/text_primary" android:textSize="14sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/fajr_time" android:textColor="#43484A" android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/row_sunrise"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:paddingStart="70dp"
+                android:paddingEnd="8dp">
+
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/sunrise" android:textColor="@color/text_primary" android:textSize="14sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/sunrise_time" android:textColor="#43484A" android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/row_dhuhr"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_selected_row"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:paddingStart="70dp"
+                android:paddingEnd="8dp">
+
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/dhuhr" android:textColor="@color/text_primary" android:textSize="14sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/dhuhr_time" android:textColor="#43484A" android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/row_asr"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:paddingStart="70dp"
+                android:paddingEnd="8dp">
+
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/asr" android:textColor="@color/text_primary" android:textSize="14sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/asr_time" android:textColor="#43484A" android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/row_maghrib"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:paddingStart="70dp"
+                android:paddingEnd="8dp">
+
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/maghrib" android:textColor="@color/text_primary" android:textSize="14sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/maghrib_time" android:textColor="#43484A" android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/row_isha"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:paddingStart="70dp"
+                android:paddingEnd="8dp">
+
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/isha" android:textColor="@color/text_primary" android:textSize="14sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/isha_time" android:textColor="#43484A" android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/direction_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="182dp"
+        android:layout_marginBottom="64dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/heading_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="14dp"
+            android:background="@drawable/bg_heading_chip"
+            android:text="@string/compass_calibrating"
+            android:textColor="@color/deep_teal"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="62dp"
+            android:layout_height="62dp"
+            android:layout_gravity="top|center_horizontal"
+            android:contentDescription="@string/content_kaaba"
+            android:src="@drawable/kaaba" />
+
+        <ImageView
+            android:id="@+id/compass_image"
+            android:layout_width="270dp"
+            android:layout_height="270dp"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="35dp"
+            android:contentDescription="@string/content_compass"
+            android:src="@drawable/compass" />
+
+        <TextView
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="58dp"
+            android:gravity="center"
+            android:text="@string/icon_heading"
+            android:textColor="@color/compass_marker"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/location_card"
+            style="@style/ZikrCard"
+            android:layout_height="118dp"
+            android:layout_gravity="top"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="298dp"
+            android:layout_marginEnd="16dp"
+            android:clickable="true"
+            android:contentDescription="@string/content_location"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/current_city"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:text="@string/location_waiting"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/current_coordinates"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:maxLines="1"
+                android:text="@string/coordinates_waiting"
+                android:textColor="#575B5C"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/current_kaaba_distance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:maxLines="1"
+                android:text="@string/distance_to_kaaba"
+                android:textColor="#575B5C"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="430dp"
+            android:text="@string/direction_open_manual"
+            android:textColor="@color/teal"
+            android:textSize="12sp" />
+    </FrameLayout>
+</FrameLayout>

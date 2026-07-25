@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface_background">
+
+    <ScrollView
+        android:id="@+id/tasbih_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="164dp"
+        android:layout_marginBottom="64dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="18dp"
+            android:paddingBottom="28dp">
+
+            <FrameLayout
+                android:id="@+id/card_statistics"
+                style="@style/ZikrCard"
+                android:layout_height="154dp">
+
+                <TextView
+                    style="@style/CardTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/real_time_dhikr" />
+
+                <TextView
+                    style="@style/CircleIcon"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginBottom="15dp"
+                    android:background="@drawable/bg_circle_yellow"
+                    android:text="@string/icon_counter" />
+
+                <TextView
+                    android:id="@+id/device_protocol_status"
+                    android:layout_width="190dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginStart="42dp"
+                    android:layout_marginBottom="17dp"
+                    android:maxLines="2"
+                    android:text="@string/sq666_disconnected"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/statistics_value"
+                    android:layout_width="62dp"
+                    android:layout_height="62dp"
+                    android:layout_gravity="end|top"
+                    android:background="@drawable/bg_circle_yellow"
+                    android:gravity="center"
+                    android:text="@string/double_dash"
+                    android:textColor="@color/white"
+                    android:textSize="23sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/device_reset_button"
+                    android:layout_width="104dp"
+                    android:layout_height="36dp"
+                    android:layout_gravity="end|bottom"
+                    android:background="@drawable/bg_auth_danger"
+                    android:clickable="true"
+                    android:contentDescription="@string/sq666_reset_button"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:gravity="center"
+                    android:text="@string/sq666_reset_button"
+                    android:textColor="@color/orange"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/card_daily_calendar"
+                style="@style/ZikrCard"
+                android:layout_height="124dp"
+                android:layout_marginTop="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <TextView
+                    style="@style/CardTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/daily_calendar_title" />
+
+                <TextView
+                    style="@style/CircleIcon"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginBottom="14dp"
+                    android:background="@drawable/bg_circle_teal"
+                    android:text="@string/icon_calendar" />
+
+                <TextView
+                    style="@style/CardDescription"
+                    android:layout_width="220dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginStart="43dp"
+                    android:layout_marginBottom="16dp"
+                    android:maxLines="2"
+                    android:text="@string/daily_calendar_entry_description" />
+
+                <TextView
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:background="@drawable/bg_circle_teal"
+                    android:gravity="center"
+                    android:text="@string/icon_calendar_next"
+                    android:textColor="@color/white"
+                    android:textSize="25sp" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/card_rotate"
+                style="@style/ZikrCard"
+                android:layout_height="128dp"
+                android:layout_marginTop="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <TextView
+                    style="@style/CardTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/rotate_screen" />
+
+                <TextView
+                    style="@style/CircleIcon"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginBottom="15dp"
+                    android:background="@drawable/bg_circle_blue"
+                    android:text="@string/icon_rotate" />
+
+                <TextView
+                    style="@style/CardDescription"
+                    android:layout_width="210dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginStart="43dp"
+                    android:layout_marginBottom="16dp"
+                    android:maxLines="2"
+                    android:text="@string/rotate_screen_description" />
+
+                <TextView
+                    android:id="@+id/layout_direction_value"
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:background="@drawable/bg_circle_blue"
+                    android:gravity="center"
+                    android:text="@string/layout_ltr"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/card_prayer_reminder"
+                style="@style/ZikrCard"
+                android:layout_height="132dp"
+                android:layout_marginTop="14dp">
+
+                <TextView
+                    style="@style/CardTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/prayer_reminder" />
+
+                <TextView
+                    android:id="@+id/reminder_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|top"
+                    android:text="@string/enabled"
+                    android:textColor="#B5C6C3"
+                    android:textSize="15sp" />
+
+                <TextView
+                    style="@style/CircleIcon"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginBottom="17dp"
+                    android:background="@drawable/bg_circle_teal"
+                    android:text="@string/icon_prayer" />
+
+                <TextView
+                    style="@style/CardDescription"
+                    android:layout_width="205dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginStart="43dp"
+                    android:layout_marginBottom="15dp"
+                    android:maxLines="2"
+                    android:text="@string/prayer_reminder_description" />
+
+                <Switch
+                    android:id="@+id/reminder_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end|bottom"
+                    android:layout_marginBottom="8dp"
+                    android:buttonTint="@color/teal"
+                    android:checked="false"
+                    android:contentDescription="@string/prayer_reminder"
+                    android:showText="false" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/card_recitation"
+                style="@style/ZikrCard"
+                android:layout_height="132dp"
+                android:layout_marginTop="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <TextView
+                    style="@style/CardTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/recitation_reminder" />
+
+                <TextView
+                    android:id="@+id/recitation_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="30dp"
+                    android:text="@string/time_unset"
+                    android:textColor="#48B7CA"
+                    android:textSize="15sp" />
+
+                <TextView
+                    style="@style/CircleIcon"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/bg_circle_teal"
+                    android:text="@string/icon_recitation" />
+
+                <TextView
+                    style="@style/CardDescription"
+                    android:layout_width="235dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginStart="43dp"
+                    android:layout_marginBottom="14dp"
+                    android:maxLines="2"
+                    android:text="@string/recitation_reminder_description" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/card_timeout"
+                style="@style/ZikrCard"
+                android:layout_height="132dp"
+                android:layout_marginTop="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <TextView
+                    style="@style/CardTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/screen_timeout" />
+
+                <TextView
+                    android:id="@+id/timeout_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="30dp"
+                    android:text="@string/timeout_10s"
+                    android:textColor="@color/orange"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    style="@style/CircleIcon"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/bg_circle_orange"
+                    android:text="@string/count_33" />
+
+                <TextView
+                    style="@style/CardDescription"
+                    android:layout_width="215dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start|bottom"
+                    android:layout_marginStart="43dp"
+                    android:layout_marginBottom="22dp"
+                    android:text="@string/screen_timeout_description" />
+
+                <TextView
+                    android:layout_width="58dp"
+                    android:layout_height="58dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:background="@drawable/bg_circle_orange"
+                    android:gravity="center"
+                    android:text="@string/icon_screen"
+                    android:textColor="@color/white"
+                    android:textSize="25sp" />
+            </FrameLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <com.zx.smartring.ui.widget.WaveHeaderView
+        android:layout_width="match_parent"
+        android:layout_height="181dp" />
+
+    <FrameLayout
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="48dp"
+        android:background="@drawable/bg_ring_outline">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/content_ring"
+            android:src="@drawable/smart_ring" />
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/device_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="105dp"
+        android:layout_marginTop="64dp"
+        android:text="@string/device_name_disconnected"
+        android:textColor="@color/white"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/connect_button"
+        android:layout_width="84dp"
+        android:layout_height="28dp"
+        android:layout_marginStart="104dp"
+        android:layout_marginTop="91dp"
+        android:background="@drawable/bg_connect"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:text="@string/connect"
+        android:textColor="@color/yellow"
+        android:textSize="12sp" />
+</FrameLayout>

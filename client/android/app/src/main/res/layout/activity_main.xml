@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/surface_background">
+
+    <View
+        android:id="@+id/status_bar_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_gravity="top"
+        android:background="@color/deep_teal" />
+
+    <FrameLayout
+        android:id="@+id/app_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="true">
+
+        <include
+            android:id="@+id/page_prayer"
+            layout="@layout/page_prayer" />
+
+        <include
+            android:id="@+id/page_tasbih"
+            layout="@layout/page_tasbih" />
+
+        <include
+            android:id="@+id/page_more"
+            layout="@layout/page_more" />
+
+        <LinearLayout
+            android:id="@+id/bottom_navigation"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_gravity="bottom"
+            android:background="@color/white"
+            android:elevation="10dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/nav_prayer"
+                style="@style/NavItem">
+
+                <TextView
+                    android:id="@+id/nav_prayer_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/icon_pray"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/nav_prayer_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/nav_pray"
+                    android:textSize="9sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/nav_tasbih"
+                style="@style/NavItem">
+
+                <TextView
+                    android:id="@+id/nav_tasbih_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/icon_tasbih"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/nav_tasbih_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/nav_tasbih"
+                    android:textSize="9sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/nav_more"
+                style="@style/NavItem">
+
+                <TextView
+                    android:id="@+id/nav_more_icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/icon_more"
+                    android:textSize="22sp" />
+
+                <TextView
+                    android:id="@+id/nav_more_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/nav_more"
+                    android:textSize="9sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/language_switch"
+            android:layout_width="48dp"
+            android:layout_height="36dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/bg_heading_chip"
+            android:clickable="true"
+            android:contentDescription="@string/switch_language"
+            android:elevation="8dp"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="@string/language_switch_button"
+            android:textColor="@color/deep_teal"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <include
+            android:id="@+id/manual_panel"
+            layout="@layout/panel_manual"
+            android:visibility="gone" />
+    </FrameLayout>
+</FrameLayout>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="teal">#11AE97</color>
+    <color name="deep_teal">#078E90</color>
+    <color name="header_bottom">#1CBE96</color>
+    <color name="yellow">#FFDD3E</color>
+    <color name="orange">#FF8E47</color>
+    <color name="blue">#315396</color>
+    <color name="dark">#27303F</color>
+    <color name="text_primary">#303233</color>
+    <color name="text_secondary">#9CA4A6</color>
+    <color name="surface_background">#F9FBFA</color>
+    <color name="light_teal">#B1E8E0</color>
+    <color name="nav_inactive">#A6ABAA</color>
+    <color name="pill_active">#495B65</color>
+    <color name="compass_marker">#D94A3D</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="chat_sacred_top">#071923</color>
+    <color name="chat_sacred_middle">#0B2931</color>
+    <color name="chat_sacred_bottom">#12383A</color>
+    <color name="chat_gold">#C9AA6A</color>
+    <color name="chat_gold_muted">#8B7955</color>
+    <color name="chat_ivory">#F3EEE3</color>
+    <color name="chat_text_muted">#B9C4BE</color>
+    <color name="chat_assistant_background">#E61A3037</color>
+    <color name="chat_user_background">#E36A5833</color>
+    <color name="chat_input_background">#D9183037</color>
+    <color name="chat_composer_background">#F2071B24</color>
+    <color name="chat_border">#7FC9AA6A</color>
+    <color name="auth_input_background">#F4F8F6</color>
+    <color name="chart_grid">#DCE8E5</color>
+    <color name="chart_line">#078E90</color>
+    <color name="chart_point">#C9AA6A</color>
+</resources>

@@ -1,0 +1,25 @@
+[Unit]
+Description=smartRing Flask API (Gunicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/smartRing/server
+Environment=DATABASE_PATH=/var/lib/smartRing/smartring.db
+Environment=APP_APK_PATH=/opt/smartRing/downloads/sr.apk
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/smartRing/venv/bin/gunicorn --workers 2 --threads 4 --bind 127.0.0.1:8001 --timeout 30 --access-logfile - --error-logfile - wsgi:app
+Restart=always
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/smartRing
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# IDE and local workspace state
+.idea/
+**/.idea/
+**/.kotlin/
+
+# Python caches
+**/__pycache__/
+*.py[cod]
+
+# Device diagnostics can contain personal and device-specific data
+bt/bugreport-*
