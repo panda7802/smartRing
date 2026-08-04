@@ -2,6 +2,7 @@ package com.zx.smartring.network
 
 import org.json.JSONObject
 import java.io.IOException
+import java.io.InterruptedIOException
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -13,13 +14,16 @@ class SmartRingApiException(
 
 object SmartRingHttpClient {
     private const val BASE_URL = "https://www.panzhenghao.cn/smartRing"
-    private const val CONNECT_TIMEOUT_MS = 15_000
+    private const val GET_CONNECT_TIMEOUT_MS = 8_000
+    private const val POST_CONNECT_TIMEOUT_MS = 30_000
     private const val READ_TIMEOUT_MS = 30_000
+    private const val GET_MAX_ATTEMPTS = 4
+    private val GET_RETRY_DELAYS_MS = longArrayOf(250, 750, 1_500)
 
     fun post(path: String, body: JSONObject, token: String? = null): JSONObject {
         val connection = (URL(BASE_URL + path).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
-            connectTimeout = CONNECT_TIMEOUT_MS
+            connectTimeout = POST_CONNECT_TIMEOUT_MS
             readTimeout = READ_TIMEOUT_MS
             doOutput = true
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
@@ -36,16 +40,18 @@ object SmartRingHttpClient {
     }
 
     fun get(path: String, token: String? = null): JSONObject {
-        val connection = (URL(BASE_URL + path).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = CONNECT_TIMEOUT_MS
-            readTimeout = READ_TIMEOUT_MS
-            setRequestProperty("Accept", "application/json")
-            if (!token.isNullOrBlank()) {
-                setRequestProperty("Authorization", "Bearer $token")
+        return retryTransientIo(GET_MAX_ATTEMPTS, GET_RETRY_DELAYS_MS) {
+            val connection = (URL(BASE_URL + path).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = GET_CONNECT_TIMEOUT_MS
+                readTimeout = READ_TIMEOUT_MS
+                setRequestProperty("Accept", "application/json")
+                if (!token.isNullOrBlank()) {
+                    setRequestProperty("Authorization", "Bearer $token")
+                }
             }
+            execute(connection)
         }
-        return execute(connection)
     }
 
     private fun execute(
@@ -73,4 +79,30 @@ object SmartRingHttpClient {
             connection.disconnect()
         }
     }
+}
+
+internal fun <T> retryTransientIo(
+    maxAttempts: Int,
+    retryDelaysMs: LongArray,
+    sleeper: (Long) -> Unit = Thread::sleep,
+    operation: () -> T
+): T {
+    require(maxAttempts > 0) { "maxAttempts must be positive" }
+    for (attempt in 0 until maxAttempts) {
+        try {
+            return operation()
+        } catch (error: IOException) {
+            if (error is SmartRingApiException || attempt == maxAttempts - 1) throw error
+            val delayMs = retryDelaysMs.getOrElse(attempt) { retryDelaysMs.lastOrNull() ?: 0L }
+            try {
+                sleeper(delayMs)
+            } catch (interrupted: InterruptedException) {
+                Thread.currentThread().interrupt()
+                throw InterruptedIOException("HTTP retry interrupted").apply {
+                    initCause(interrupted)
+                }
+            }
+        }
+    }
+    error("unreachable")
 }

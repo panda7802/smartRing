@@ -43,9 +43,23 @@
         android:paddingEnd="16dp">
 
         <TextView
+            android:id="@+id/faith_chat_entry"
+            style="@style/ZikrCard"
+            android:layout_height="78dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:text="@string/faith_chat_entry"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
             android:id="@+id/blessing_entry"
             style="@style/ZikrCard"
             android:layout_height="78dp"
+            android:layout_marginTop="14dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"

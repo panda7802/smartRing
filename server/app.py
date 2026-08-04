@@ -37,6 +37,9 @@ MAX_BLESSING_MESSAGE_LENGTH = 280
 MAX_PACKAGE_NAME_LENGTH = 255
 MAX_BLESSING_EVENT_KEY_LENGTH = 64
 ADMIN_BLESSING_PAGE_SIZE = 100
+MAX_FAITH_USER_MESSAGE_LENGTH = 2_000
+MAX_FAITH_ASSISTANT_MESSAGE_LENGTH = 8_000
+FAITH_CHAT_HISTORY_LIMIT = 100
 CHINA_TIMEZONE = timezone(timedelta(hours=8))
 
 
@@ -174,6 +177,18 @@ class SmartRingService:
                     ON blessing_events(blessing_id, created_at DESC);
                 CREATE INDEX IF NOT EXISTS idx_blessing_events_recipient
                     ON blessing_events(recipient_user_id, created_at DESC);
+
+                CREATE TABLE IF NOT EXISTS faith_chat_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL
+                        REFERENCES users(id) ON DELETE CASCADE,
+                    role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+                    content TEXT NOT NULL,
+                    created_at INTEGER NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_faith_chat_messages_user
+                    ON faith_chat_messages(user_id, id DESC);
                 """
             )
             user_columns = {
@@ -1117,6 +1132,60 @@ class SmartRingService:
             "received": [self._blessing_event_payload(row) for row in received_rows],
         }
 
+    def _save_faith_chat_exchange(
+        self, body: dict[str, Any]
+    ) -> tuple[int, dict[str, Any]]:
+        user_message = self._required_text(
+            body,
+            "user",
+            MAX_FAITH_USER_MESSAGE_LENGTH,
+            "INVALID_FAITH_USER_MESSAGE",
+        )
+        assistant_message = self._required_text(
+            body,
+            "assistant",
+            MAX_FAITH_ASSISTANT_MESSAGE_LENGTH,
+            "INVALID_FAITH_ASSISTANT_MESSAGE",
+        )
+        user_id = self._authenticated_user_id()
+        created_at = int(time.time())
+        with self._connection() as connection:
+            connection.executemany(
+                """
+                INSERT INTO faith_chat_messages(user_id, role, content, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    (user_id, "user", user_message, created_at),
+                    (user_id, "assistant", assistant_message, created_at),
+                ),
+            )
+        return 201, {"message": "对话已保存"}
+
+    def _faith_chat_history(self) -> tuple[int, dict[str, Any]]:
+        user_id = self._authenticated_user_id()
+        with self._connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, role, content, created_at
+                FROM faith_chat_messages
+                WHERE user_id = ?
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (user_id, FAITH_CHAT_HISTORY_LIMIT),
+            ).fetchall()
+        return 200, {
+            "messages": [
+                {
+                    "role": str(row["role"]),
+                    "content": str(row["content"]),
+                    "createdAt": utc_iso(int(row["created_at"])),
+                }
+                for row in reversed(rows)
+            ]
+        }
+
 def create_app(
     database_path: str | os.PathLike[str] | None = None,
     apk_path: str | os.PathLike[str] | None = None,
@@ -1216,6 +1285,12 @@ def create_app(
 
     def blessing_history() -> tuple[Response, int]:
         return api_result(service._blessing_history())
+
+    def save_faith_chat_exchange() -> tuple[Response, int]:
+        return api_result(service._save_faith_chat_exchange(service._json_body()))
+
+    def faith_chat_history() -> tuple[Response, int]:
+        return api_result(service._faith_chat_history())
 
     def admin_dashboard() -> Response:
         session = service._admin_session()
@@ -1334,6 +1409,18 @@ def create_app(
         "/blessings/receive", "receive_blessing", receive_blessing, ["POST"]
     )
     add_dual_rule("/blessings", "blessing_history", blessing_history, ["GET"])
+    add_dual_rule(
+        "/faith-chat/exchange",
+        "save_faith_chat_exchange",
+        save_faith_chat_exchange,
+        ["POST"],
+    )
+    add_dual_rule(
+        "/faith-chat/history",
+        "faith_chat_history",
+        faith_chat_history,
+        ["GET"],
+    )
     add_dual_rule("/admin/", "admin_dashboard", admin_dashboard, ["GET"])
     add_dual_rule("/admin/user", "admin_user_calendar", admin_user_calendar, ["GET"])
     add_dual_rule(

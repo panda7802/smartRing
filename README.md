@@ -1,6 +1,6 @@
 # smartRing / Zikr Ring
 
-smartRing 是一套智能赞念戒指应用，包含原生 Android APP、SQ666 BLE 通信、NFC“祈福”贴纸、Flask API、SQLite 数据存储和浏览器管理后台。
+smartRing 是一套智能赞念戒指应用，包含原生 Android APP、SQ666 BLE 通信、NFC“祈福”贴纸、“祈思”信仰问答、Flask API、SQLite 数据存储和浏览器管理后台。
 
 ## 项目结构
 
@@ -17,6 +17,7 @@ flowchart LR
     A <-->|"HTTPS JSON API"| S["Flask Server"]
     S <--> D["SQLite"]
     A <-->|"NDEF UUID + AAR"| N["NFC 贴纸 / 芯片"]
+    A <-->|"HTTPS Chat Completions"| AI["DeepSeek"]
     B["浏览器管理后台"] <-->|"安全 Cookie 会话"| S
 ```
 
@@ -33,6 +34,10 @@ flowchart LR
 - 中英文切换、LTR/RTL 布局切换、息屏时长设置和戒指使用说明。
 - NFC“祈福”：写入祝福、扫描展示、失败重试、登录后补传扫描事件，以及“我发起的 / 我收到的”历史列表。
 - 前台可使用 NFC Reader Mode；APP 在后台时，匹配 MIME 类型的 NDEF 贴纸可由 Android 拉起祝福展示页。
+- “祈思”信仰问答：登录后调用 DeepSeek 获取回答，在云端按账户保存并恢复最近对话；回答页包含 AI 内容声明和教法、医疗、法律等高风险问题提示。
+- HTTPS GET 请求遇到连接超时、断连等瞬时网络错误时自动重试；HTTP 4xx/5xx 业务错误不会重试。
+- 祈福历史优先请求历史 GET，不再等待本地待上传扫描事件同步完成，避免不稳定网络下历史列表被 POST 阻塞。
+- NFC 写入采用严格只写状态：从点击“准备写入”开始，云端数据尚未准备好时忽略靠近的标签，准备好后只执行写入，写入成功后才恢复读取。
 
 ## Server 功能
 
@@ -40,6 +45,7 @@ flowchart LR
 - 按账户、按中国标准时间自然日保存赞念数，并支持设备重置后的同步语义。
 - 在云端保存祈福贴纸 UUID、发送账户、昵称、祝福语、APP 包名和创建时间。
 - 幂等记录每次 NFC 靠近产生的祈福事件，并提供发送/接收历史。
+- 按账户保存祈思用户消息和助手回答，并提供最近对话历史。
 - 提供 Android APK 下载。
 - 提供独立管理员账户、12 小时后台会话、CSRF 防护和 HTML 管理页面。
 - 管理后台可查看注册用户、用户赞念日历，以及全部祈福发送/接收记录。
@@ -87,6 +93,8 @@ flowchart LR
 | `GET` | `/blessings/tags/{blessingId}` | 否 | 通过贴纸 UUID 获取祝福详情 |
 | `POST` | `/blessings/receive` | Bearer | 幂等记录一次收到祈福 |
 | `GET` | `/blessings` | Bearer | 获取当前账户发送/接收历史 |
+| `POST` | `/faith-chat/exchange` | Bearer | 保存一轮祈思用户消息和助手回答 |
+| `GET` | `/faith-chat/history` | Bearer | 获取当前账户最近祈思对话 |
 | `GET` | `/app/sr.apk` | 否 | 下载 Android APK |
 
 ### 1. 注册用户
@@ -364,7 +372,58 @@ APP 只把返回的 `blessingId` 和 Android Application Record 写进 NFC；昵
 
 `sent` 和 `received` 最多各 200 条，均按事件时间倒序。同一自祈福事件会同时出现在当前账户的两个数组中。
 
-### 12. 下载 APK
+### 12. 保存祈思对话
+
+`POST /faith-chat/exchange`
+
+入参：Bearer token，以及一轮已经完成的用户消息和助手回答：
+
+```json
+{
+  "user": "如何在生活中保持耐心？",
+  "assistant": "可以从礼拜、克制和持续反思开始。"
+}
+```
+
+- `user`：1～2000 个字符。
+- `assistant`：1～8000 个字符。
+- 两个字段首尾均不能有空格。
+- 服务端在同一事务中按 `user`、`assistant` 顺序保存两条消息。
+
+成功时返回 HTTP 201：
+
+```json
+{
+  "message": "对话已保存"
+}
+```
+
+### 13. 获取祈思历史
+
+`GET /faith-chat/history`
+
+入参：仅 Bearer token，无请求体。成功时按时间正序返回当前账户最近 100 条消息：
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "如何在生活中保持耐心？",
+      "createdAt": "2026-08-04T08:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "可以从礼拜、克制和持续反思开始。",
+      "createdAt": "2026-08-04T08:00:00Z"
+    }
+  ]
+}
+```
+
+不同账户的祈思消息相互隔离；没有历史时返回 `{"messages":[]}`。
+
+### 14. 下载 APK
 
 `GET /app/sr.apk`
 
@@ -490,6 +549,18 @@ APP 同时等到 `onCharacteristicWrite(..., GATT_SUCCESS)` 和 `0x0038(count=0)
 
 完整抓包依据与证据边界见 [`bt/SQ666_APP_BLE_PROTOCOL.md`](bt/SQ666_APP_BLE_PROTOCOL.md)。
 
+## APP 的 HTTPS 容错策略
+
+客户端继续使用标准 `HttpsURLConnection` 请求 `https://www.panzhenghao.cn/smartRing`，没有使用 WebSocket 或私有传输协议。为处理公网首次 TCP/TLS 握手偶发超时，当前策略为：
+
+- `GET` 请求连接超时为 8 秒，最多尝试 4 次，重试前依次等待 250、750、1500 毫秒。
+- 连接超时、连接重置、DNS 瞬时失败等 `IOException` 可以重试。
+- 已收到服务器响应的 HTTP 4xx/5xx 不重试，避免掩盖鉴权或参数错误。
+- `POST` 请求连接超时为 30 秒，但默认不自动重试，避免在响应丢失时重复注册用户、创建祈福贴纸或写入其他非幂等数据。
+- 祈福历史直接加载 `/blessings`；待上传 NFC 扫描事件由扫码结果页和主页恢复流程在后台同步，不阻塞历史展示。
+
+该策略用于减轻客户端可见的瞬时网络失败，不能替代对生产服务器公网线路、云安全组和上游网络质量的监控。
+
 ## APP 读写 NFC 的格式
 
 ### 新版云端 UUID 格式
@@ -511,9 +582,11 @@ Total    = 114 bytes
 
 这种格式不把昵称和祝福语写入贴纸，可适配常见约 144-byte 可用容量的 NTAG213。写入时：
 
-1. 对已有 NDEF 标签使用 `Ndef`，检查 `isWritable` 和 `maxSize` 后调用 `writeNdefMessage`。
-2. 对未格式化但支持 NDEF 的标签使用 `NdefFormatable.format(message)`。
-3. 不可写、容量不足或不支持 NDEF 时终止并提示用户。
+1. 用户点击“准备写入”后立即进入写模式；云端 `POST /blessings/tags` 尚未返回 UUID 时，Reader Callback 收到标签只会忽略，不读取 NDEF、也不打开祝福展示页。
+2. UUID 准备完成后，Reader Callback 只选择写入分支。对已有 NDEF 标签使用 `Ndef`，检查 `isWritable` 和 `maxSize` 后调用 `writeNdefMessage`。
+3. 对未格式化但支持 NDEF 的标签使用 `NdefFormatable.format(message)`。
+4. 写入失败时保留写模式和待写 UUID，下一次靠近仍只重试写入；写入成功后清除待写数据并恢复读取模式。
+5. 不可写、容量不足或不支持 NDEF 时终止本次写入并提示用户。
 
 ### 读取流程
 
@@ -556,6 +629,8 @@ cd client/android
 ```
 
 Debug APK 输出：`client/android/app/build/outputs/apk/debug/app-debug.apk`。
+
+当前发布包使用仓库内 `client/android/cert/sc.jks` 的 `sc` 别名签名。该文件已按项目要求纳入版本控制，请限制仓库访问权限并妥善管理签名密码；签名后的 Release APK 输出为 `client/android/app/build/outputs/apk/release/app-release-sc.apk`。
 
 ### Server
 

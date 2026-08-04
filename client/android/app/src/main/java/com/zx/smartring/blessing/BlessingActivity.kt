@@ -43,6 +43,7 @@ class BlessingActivity : Activity(), NfcAdapter.ReaderCallback {
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private var nfcAdapter: NfcAdapter? = null
     @Volatile private var pendingPayload: BlessingPayload? = null
+    @Volatile private var writeModeActive = false
     @Volatile private var writing = false
     private var history = BlessingHistory(emptyList(), emptyList())
     private var showingSent = true
@@ -136,7 +137,10 @@ class BlessingActivity : Activity(), NfcAdapter.ReaderCallback {
     }
 
     private fun prepareWrite() {
-        if (writing) return
+        if (writing || writeModeActive) {
+            if (pendingPayload != null) writeStatus.setText(R.string.blessing_hold_near_tag)
+            return
+        }
         if (nfcAdapter?.isEnabled != true) {
             writeStatus.setText(R.string.blessing_enable_nfc)
             return
@@ -165,6 +169,7 @@ class BlessingActivity : Activity(), NfcAdapter.ReaderCallback {
             Toast.makeText(this, R.string.blessing_login_required, Toast.LENGTH_SHORT).show()
             return
         }
+        writeModeActive = true
         setWriteBusy(true)
         writeStatus.setText(R.string.blessing_registering)
         executor.execute {
@@ -185,12 +190,16 @@ class BlessingActivity : Activity(), NfcAdapter.ReaderCallback {
     }
 
     override fun onTagDiscovered(tag: Tag) {
-        val payload = pendingPayload
-        if (payload == null) {
-            val scanned = runCatching { BlessingNfc.read(tag) }.getOrNull() ?: return
-            runOnUiThread { openBlessing(scanned) }
-            return
+        when (BlessingNfcMode.action(writeModeActive, pendingPayload != null)) {
+            BlessingNfcAction.READ -> {
+                val scanned = runCatching { BlessingNfc.read(tag) }.getOrNull() ?: return
+                runOnUiThread { openBlessing(scanned) }
+                return
+            }
+            BlessingNfcAction.IGNORE -> return
+            BlessingNfcAction.WRITE -> Unit
         }
+        val payload = pendingPayload ?: return
         synchronized(this) {
             if (writing) return
             writing = true
@@ -204,6 +213,7 @@ class BlessingActivity : Activity(), NfcAdapter.ReaderCallback {
             if (isDestroyed) return@runOnUiThread
             result.onSuccess {
                 pendingPayload = null
+                writeModeActive = false
                 writeButton.setText(R.string.blessing_prepare_write)
                 writeStatus.setText(R.string.blessing_write_success)
                 Toast.makeText(this, R.string.blessing_write_success, Toast.LENGTH_LONG).show()
@@ -228,6 +238,7 @@ class BlessingActivity : Activity(), NfcAdapter.ReaderCallback {
     }
 
     private fun handleWriteFailure(error: Throwable) {
+        writeModeActive = false
         if (error is SmartRingApiException && error.statusCode == 401) {
             SessionStore.clear(this)
             Toast.makeText(this, R.string.auth_session_expired, Toast.LENGTH_SHORT).show()
@@ -249,7 +260,6 @@ class BlessingActivity : Activity(), NfcAdapter.ReaderCallback {
         historyStatus.setText(R.string.blessing_history_loading)
         historyList.removeAllViews()
         executor.execute {
-            BlessingSync.syncPending(applicationContext)
             val result = runCatching { BlessingApi.history(session.token) }
             runOnUiThread {
                 if (isDestroyed) return@runOnUiThread

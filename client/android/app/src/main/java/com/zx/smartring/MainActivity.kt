@@ -49,6 +49,7 @@ import com.zx.smartring.ble.BleResetError
 import com.zx.smartring.ble.NearbyBleDevice
 import com.zx.smartring.blessing.BlessingActivity
 import com.zx.smartring.blessing.BlessingSync
+import com.zx.smartring.chat.FaithChatActivity
 import com.zx.smartring.reminder.RecitationReminderScheduler
 import com.zx.smartring.settings.AppSettingsStore
 import com.zx.smartring.settings.RecitationWindow
@@ -792,6 +793,14 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun bindMoreInteractions() {
+        findViewById<View>(R.id.faith_chat_entry).setOnClickListener {
+            if (SessionStore.get(this) == null) {
+                showMessage(R.string.faith_chat_login_required)
+                openAccount()
+            } else {
+                startActivity(Intent(this, FaithChatActivity::class.java))
+            }
+        }
         findViewById<View>(R.id.blessing_entry).setOnClickListener {
             if (SessionStore.get(this) == null) {
                 showMessage(R.string.blessing_login_required)

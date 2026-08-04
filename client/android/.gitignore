@@ -10,6 +10,8 @@
 .DS_Store
 /build
 /captures
+/cert/*.jks
+/cert/*.keystore
 .externalNativeBuild
 .cxx
 local.properties

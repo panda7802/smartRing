@@ -95,6 +95,10 @@ class SmartRingApiTests(unittest.TestCase):
             "/smartRing/blessings/receive",
             "/blessings",
             "/smartRing/blessings",
+            "/faith-chat/exchange",
+            "/smartRing/faith-chat/exchange",
+            "/faith-chat/history",
+            "/smartRing/faith-chat/history",
             "/admin/",
             "/smartRing/admin/",
             "/admin/user",
@@ -158,6 +162,7 @@ class SmartRingApiTests(unittest.TestCase):
                 "tasbeeh_daily_counts",
                 "blessing_tags",
                 "blessing_events",
+                "faith_chat_messages",
             },
             tables,
         )
@@ -416,6 +421,64 @@ class SmartRingApiTests(unittest.TestCase):
 
         unauthorized = self.client.request("GET", "/tasbeeh/daily")
         self.assertEqual(401, unauthorized["status"])
+
+    def test_faith_chat_exchange_and_history_are_private_per_user(self):
+        alice_token = self.register_and_login("alice", "secret")
+        bob_token = self.register_and_login("bob", "secret")
+
+        saved = self.client.request(
+            "POST",
+            "/smartRing/faith-chat/exchange",
+            {"user": "如何保持耐心？", "assistant": "可以从礼拜和日常克制开始。"},
+            alice_token,
+        )
+        self.assertEqual(201, saved["status"])
+
+        alice_history = self.client.request(
+            "GET", "/faith-chat/history", token=alice_token
+        )
+        self.assertEqual(200, alice_history["status"])
+        self.assertEqual(
+            [
+                {"role": "user", "content": "如何保持耐心？"},
+                {"role": "assistant", "content": "可以从礼拜和日常克制开始。"},
+            ],
+            [
+                {"role": message["role"], "content": message["content"]}
+                for message in alice_history["json"]["messages"]
+            ],
+        )
+        self.assertTrue(
+            all("createdAt" in message for message in alice_history["json"]["messages"])
+        )
+
+        bob_history = self.client.request(
+            "GET", "/smartRing/faith-chat/history", token=bob_token
+        )
+        self.assertEqual({"messages": []}, bob_history["json"])
+
+    def test_faith_chat_validates_payload_and_authentication(self):
+        token = self.register_and_login()
+        for body, code in (
+            ({"user": "", "assistant": "answer"}, "INVALID_FAITH_USER_MESSAGE"),
+            ({"user": "question", "assistant": ""}, "INVALID_FAITH_ASSISTANT_MESSAGE"),
+            ({"user": " question", "assistant": "answer"}, "INVALID_FAITH_USER_MESSAGE"),
+        ):
+            with self.subTest(body=body):
+                response = self.client.request(
+                    "POST", "/faith-chat/exchange", body, token
+                )
+                self.assertEqual(400, response["status"])
+                self.assertEqual(code, response["json"]["code"])
+
+        unauthorized_save = self.client.request(
+            "POST",
+            "/faith-chat/exchange",
+            {"user": "question", "assistant": "answer"},
+        )
+        self.assertEqual(401, unauthorized_save["status"])
+        unauthorized_history = self.client.request("GET", "/faith-chat/history")
+        self.assertEqual(401, unauthorized_history["status"])
 
     def test_blessing_scan_is_visible_to_sender_and_recipient(self):
         alice_token = self.register_and_login("alice", "secret")

@@ -57,6 +57,13 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.SmartRing" />
         <activity
+            android:name=".chat.FaithChatActivity"
+            android:exported="false"
+            android:label="@string/faith_chat_title"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.SmartRing"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".blessing.BlessingDisplayActivity"
             android:exported="true"
             android:label="@string/blessing_arrived_title"

@@ -275,4 +275,24 @@
     <string name="blessing_cloud_load_failed">Check your connection and retry. The UUID stored on the tag is safe.</string>
     <string name="blessing_cloud_retry">Try again</string>
     <string name="blessing_seal_icon">Wish</string>
+    <string name="faith_chat_entry">Faith Reflection · Q&amp;A</string>
+    <string name="faith_chat_title">Faith Reflection</string>
+    <string name="faith_chat_subtitle">Faith Q&amp;A and mindful reflection</string>
+    <string name="faith_chat_disclaimer">AI-generated guidance for learning and reflection only. Consult a trusted qualified scholar for important religious rulings.</string>
+    <string name="faith_chat_input_hint">Write your question…</string>
+    <string name="faith_chat_send">Send</string>
+    <string name="faith_chat_login_required">Sign in before using Faith Reflection</string>
+    <string name="faith_chat_empty_input">Enter a question</string>
+    <string name="faith_chat_missing_key">Faith Reflection is not configured yet</string>
+    <string name="faith_chat_thinking">Thinking…</string>
+    <string name="faith_chat_loading_history">Loading conversation history…</string>
+    <string name="faith_chat_history_failed">Could not load conversation history. Try again later.</string>
+    <string name="faith_chat_save_failed">The answer is shown, but could not be saved to the cloud</string>
+    <string name="faith_chat_empty_response">The service returned no usable answer. Please retry.</string>
+    <string name="faith_chat_service_error">Faith Reflection request failed (%1$d)</string>
+    <string name="faith_chat_network_error">Network connection failed. Try again later.</string>
+    <string name="faith_chat_unknown_error">Unable to answer right now. Try again later.</string>
+    <string name="faith_chat_welcome">Peace be with you. Ask about faith, prayer, scripture, ethics, or everyday Muslim life.</string>
+    <string name="faith_chat_user_label">You</string>
+    <string name="faith_chat_assistant_label">Faith Reflection</string>
 </resources>

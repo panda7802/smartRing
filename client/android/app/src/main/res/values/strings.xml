@@ -278,4 +278,24 @@
     <string name="blessing_sparkle_icon" translatable="false">✦</string>
     <string name="blessing_sparkle_outline_icon" translatable="false">✧</string>
     <string name="blessing_seal_icon">祈</string>
+    <string name="faith_chat_entry">祈思 · 信仰问答</string>
+    <string name="faith_chat_title">祈思</string>
+    <string name="faith_chat_subtitle">信仰问答与静心反思</string>
+    <string name="faith_chat_disclaimer">回答由 AI 生成，仅供学习与反思；重要教法问题请咨询可信赖的合格学者。</string>
+    <string name="faith_chat_input_hint">写下你的问题……</string>
+    <string name="faith_chat_send">发送</string>
+    <string name="faith_chat_login_required">请先登录再使用祈思</string>
+    <string name="faith_chat_empty_input">请输入问题</string>
+    <string name="faith_chat_missing_key">祈思服务尚未配置</string>
+    <string name="faith_chat_thinking">正在思考……</string>
+    <string name="faith_chat_loading_history">正在加载历史对话……</string>
+    <string name="faith_chat_history_failed">历史对话加载失败，请稍后重试</string>
+    <string name="faith_chat_save_failed">回答已显示，但暂时未能保存到云端</string>
+    <string name="faith_chat_empty_response">服务没有返回有效内容，请重试</string>
+    <string name="faith_chat_service_error">祈思服务请求失败（%1$d）</string>
+    <string name="faith_chat_network_error">网络连接失败，请稍后重试</string>
+    <string name="faith_chat_unknown_error">暂时无法回答，请稍后重试</string>
+    <string name="faith_chat_welcome">愿平安与你同在。你可以询问信仰、礼拜、经典、伦理或穆斯林日常生活相关的问题。</string>
+    <string name="faith_chat_user_label">你</string>
+    <string name="faith_chat_assistant_label">祈思</string>
 </resources>
