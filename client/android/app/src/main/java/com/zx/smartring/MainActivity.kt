@@ -47,6 +47,8 @@ import com.zx.smartring.ble.BleConnectionState
 import com.zx.smartring.ble.BleProtocolError
 import com.zx.smartring.ble.BleResetError
 import com.zx.smartring.ble.NearbyBleDevice
+import com.zx.smartring.blessing.BlessingActivity
+import com.zx.smartring.blessing.BlessingSync
 import com.zx.smartring.reminder.RecitationReminderScheduler
 import com.zx.smartring.settings.AppSettingsStore
 import com.zx.smartring.settings.RecitationWindow
@@ -790,6 +792,14 @@ class MainActivity : Activity(), SensorEventListener {
     }
 
     private fun bindMoreInteractions() {
+        findViewById<View>(R.id.blessing_entry).setOnClickListener {
+            if (SessionStore.get(this) == null) {
+                showMessage(R.string.blessing_login_required)
+                openAccount()
+            } else {
+                startActivity(Intent(this, BlessingActivity::class.java))
+            }
+        }
         findViewById<View>(R.id.manual_entry).setOnClickListener { openManual() }
         findViewById<View>(R.id.about_entry).setOnClickListener {
             showMessage(R.string.about_message)
@@ -1236,6 +1246,9 @@ class MainActivity : Activity(), SensorEventListener {
         updateProfileState()
         if (SessionStore.get(this) != null) {
             latestDeviceCount?.let(tasbeehSyncCoordinator::syncDeviceCount)
+            Thread { BlessingSync.syncPending(applicationContext) }
+                .apply { name = "blessing-sync" }
+                .start()
         }
         if (currentPage == PAGE_PRAYER && directionModeActive) {
             startCompass()

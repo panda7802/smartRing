@@ -56,7 +56,8 @@
 {
   "token": "登录令牌",
   "tokenType": "Bearer",
-  "expiresAt": "2026-08-16T03:22:33Z"
+  "expiresAt": "2026-08-16T03:22:33Z",
+  "userId": 1
 }
 ```
 
@@ -189,6 +190,64 @@
 | 413 | 请求体超过 16 KiB |
 | 415 | `Content-Type` 不符合接口要求 |
 | 500 | 服务器内部错误 |
+
+## NFC 祈福接口
+
+以下接口都需要 `Authorization: Bearer <token>`。
+
+### 获取当前账户
+
+`GET /smartRing/me`
+
+返回当前账户的服务端 ID 和用户名：
+
+```json
+{"userId":1,"name":"alice"}
+```
+
+### 登记一枚祈福贴纸
+
+`POST /smartRing/blessings/tags`
+
+```json
+{
+  "nickname": "小安",
+  "message": "愿你平安喜乐",
+  "packageName": "com.zx.smartring"
+}
+```
+
+服务端返回标准 UUID 格式的 `blessingId`，同时在云端保存账户、昵称、祝福语、包名和
+登记时间。Android 客户端只把 UUID 和 Android Application Record 写入 NDEF，以适配
+容量较小的 NFC 贴纸；Application Record 中的包名用于系统把扫描事件路由到本 APP。
+
+### 通过贴纸 UUID 获取祝福详情
+
+`GET /smartRing/blessings/tags/{blessingId}`
+
+该接口无需登录。UUID 相当于贴纸的随机访问标识，返回昵称、祝福语、发送账户 ID、包名和
+登记时间。扫描贴纸后，Android APP 先调用本接口取回展示内容，再记录收到祈福的事件。
+
+### 记录一次收到的祈福
+
+`POST /smartRing/blessings/receive`
+
+```json
+{
+  "blessingId": "服务端返回的祝福 ID",
+  "eventId": "本次扫描生成的 UUID"
+}
+```
+
+每次物理靠近生成新的 `eventId`；同一 `eventId` 重试不会重复计数。响应中的 `isSelf`
+表示发送者与接收者是否为同一账户，自祈福仍会正常保存。
+
+### 获取祈福记录
+
+`GET /smartRing/blessings`
+
+返回 `sent` 和 `received` 两个数组，分别表示当前账户发起和收到的祈福，最多各 200 条，
+按时间倒序排列。
 
 ## curl 调用示例
 

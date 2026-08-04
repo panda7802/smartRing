@@ -14,6 +14,7 @@ import secrets
 import sqlite3
 import sys
 import time
+import uuid
 from argparse import ArgumentParser
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -31,6 +32,10 @@ ADMIN_TOKEN_TTL_SECONDS = 12 * 60 * 60
 ADMIN_COOKIE_NAME = "smartRingAdmin"
 PUBLIC_PREFIX = "/smartRing"
 MAX_TASBEEH_COUNT = 9_007_199_254_740_991
+MAX_BLESSING_NICKNAME_LENGTH = 40
+MAX_BLESSING_MESSAGE_LENGTH = 280
+MAX_PACKAGE_NAME_LENGTH = 255
+MAX_BLESSING_EVENT_KEY_LENGTH = 64
 CHINA_TIMEZONE = timezone(timedelta(hours=8))
 
 
@@ -140,6 +145,34 @@ class SmartRingService:
 
                 CREATE INDEX IF NOT EXISTS idx_admin_sessions_token_active
                     ON admin_sessions(token_hash, expires_at, revoked_at);
+
+                CREATE TABLE IF NOT EXISTS blessing_tags (
+                    id TEXT PRIMARY KEY,
+                    owner_user_id INTEGER NOT NULL
+                        REFERENCES users(id) ON DELETE CASCADE,
+                    nickname TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    package_name TEXT NOT NULL,
+                    created_at INTEGER NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_blessing_tags_owner
+                    ON blessing_tags(owner_user_id, created_at DESC);
+
+                CREATE TABLE IF NOT EXISTS blessing_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_key TEXT NOT NULL UNIQUE,
+                    blessing_id TEXT NOT NULL
+                        REFERENCES blessing_tags(id) ON DELETE CASCADE,
+                    recipient_user_id INTEGER NOT NULL
+                        REFERENCES users(id) ON DELETE CASCADE,
+                    created_at INTEGER NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_blessing_events_blessing
+                    ON blessing_events(blessing_id, created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_blessing_events_recipient
+                    ON blessing_events(recipient_user_id, created_at DESC);
                 """
             )
             user_columns = {
@@ -214,6 +247,27 @@ class SmartRingService:
                 f"count 必须在 0 到 {MAX_TASBEEH_COUNT} 之间",
             )
         return count
+
+    @staticmethod
+    def _required_text(
+        body: dict[str, Any],
+        field: str,
+        maximum_length: int,
+        error_code: str,
+    ) -> str:
+        value = body.get(field)
+        if (
+            not isinstance(value, str)
+            or not value.strip()
+            or value != value.strip()
+            or len(value) > maximum_length
+        ):
+            raise ApiError(
+                400,
+                error_code,
+                f"{field} 必须是 1 到 {maximum_length} 个字符且首尾不能有空格",
+            )
+        return value
 
     @staticmethod
     def _china_date() -> str:
@@ -631,7 +685,18 @@ class SmartRingService:
             "token": token,
             "tokenType": "Bearer",
             "expiresAt": utc_iso(expires_at),
+            "userId": int(user["id"]),
         }
+
+    def _me(self) -> tuple[int, dict[str, Any]]:
+        user_id = self._authenticated_user_id()
+        with self._connection() as connection:
+            user = connection.execute(
+                "SELECT id, name FROM users WHERE id = ?", (user_id,)
+            ).fetchone()
+        if user is None:
+            raise ApiError(401, "UNAUTHORIZED", "token 对应的用户不存在")
+        return 200, {"userId": int(user["id"]), "name": str(user["name"])}
 
     def _logout(self) -> tuple[int, dict[str, Any]]:
         user_id = self._authenticated_user_id()
@@ -736,6 +801,189 @@ class SmartRingService:
             ]
         }
 
+    def _create_blessing_tag(
+        self, body: dict[str, Any]
+    ) -> tuple[int, dict[str, Any]]:
+        owner_user_id = self._authenticated_user_id()
+        nickname = self._required_text(
+            body,
+            "nickname",
+            MAX_BLESSING_NICKNAME_LENGTH,
+            "INVALID_NICKNAME",
+        )
+        message = self._required_text(
+            body,
+            "message",
+            MAX_BLESSING_MESSAGE_LENGTH,
+            "INVALID_BLESSING_MESSAGE",
+        )
+        package_name = self._required_text(
+            body,
+            "packageName",
+            MAX_PACKAGE_NAME_LENGTH,
+            "INVALID_PACKAGE_NAME",
+        )
+        blessing_id = str(uuid.uuid4())
+        created_at = int(time.time())
+        with self._connection() as connection:
+            connection.execute(
+                """
+                INSERT INTO blessing_tags(
+                    id, owner_user_id, nickname, message, package_name, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    blessing_id,
+                    owner_user_id,
+                    nickname,
+                    message,
+                    package_name,
+                    created_at,
+                ),
+            )
+        return 201, {
+            "blessingId": blessing_id,
+            "senderUserId": owner_user_id,
+            "nickname": nickname,
+            "message": message,
+            "packageName": package_name,
+            "createdAt": utc_iso(created_at),
+        }
+
+    def _blessing_tag(self, blessing_id: str) -> tuple[int, dict[str, Any]]:
+        if not blessing_id or len(blessing_id) > 64 or blessing_id != blessing_id.strip():
+            raise ApiError(400, "INVALID_BLESSING_ID", "blessingId 格式不正确")
+        with self._connection() as connection:
+            row = connection.execute(
+                """
+                SELECT t.id, t.owner_user_id, t.nickname, t.message,
+                       t.package_name, t.created_at, u.name AS sender_name
+                FROM blessing_tags AS t
+                JOIN users AS u ON u.id = t.owner_user_id
+                WHERE t.id = ?
+                """,
+                (blessing_id,),
+            ).fetchone()
+        if row is None:
+            raise ApiError(404, "BLESSING_NOT_FOUND", "祈福贴纸未在服务端登记")
+        return 200, {
+            "blessingId": str(row["id"]),
+            "senderUserId": int(row["owner_user_id"]),
+            "senderName": str(row["sender_name"]),
+            "nickname": str(row["nickname"]),
+            "message": str(row["message"]),
+            "packageName": str(row["package_name"]),
+            "createdAt": utc_iso(int(row["created_at"])),
+        }
+
+    @staticmethod
+    def _blessing_event_payload(row: sqlite3.Row) -> dict[str, Any]:
+        sender_user_id = int(row["sender_user_id"])
+        recipient_user_id = int(row["recipient_user_id"])
+        return {
+            "eventId": int(row["event_id"]),
+            "blessingId": str(row["blessing_id"]),
+            "nickname": str(row["nickname"]),
+            "message": str(row["message"]),
+            "packageName": str(row["package_name"]),
+            "senderUserId": sender_user_id,
+            "senderName": str(row["sender_name"]),
+            "recipientUserId": recipient_user_id,
+            "recipientName": str(row["recipient_name"]),
+            "createdAt": utc_iso(int(row["created_at"])),
+            "isSelf": sender_user_id == recipient_user_id,
+        }
+
+    def _blessing_event_row(
+        self, connection: sqlite3.Connection, event_key: str
+    ) -> sqlite3.Row:
+        row = connection.execute(
+            """
+            SELECT e.id AS event_id, e.created_at, e.recipient_user_id,
+                   t.id AS blessing_id, t.nickname, t.message, t.package_name,
+                   t.owner_user_id AS sender_user_id,
+                   sender.name AS sender_name, recipient.name AS recipient_name
+            FROM blessing_events AS e
+            JOIN blessing_tags AS t ON t.id = e.blessing_id
+            JOIN users AS sender ON sender.id = t.owner_user_id
+            JOIN users AS recipient ON recipient.id = e.recipient_user_id
+            WHERE e.event_key = ?
+            """,
+            (event_key,),
+        ).fetchone()
+        if row is None:
+            raise ApiError(500, "EVENT_NOT_FOUND", "祈福事件保存失败")
+        return row
+
+    def _receive_blessing(
+        self, body: dict[str, Any]
+    ) -> tuple[int, dict[str, Any]]:
+        recipient_user_id = self._authenticated_user_id()
+        blessing_id = self._required_text(
+            body, "blessingId", 64, "INVALID_BLESSING_ID"
+        )
+        event_key = self._required_text(
+            body,
+            "eventId",
+            MAX_BLESSING_EVENT_KEY_LENGTH,
+            "INVALID_EVENT_ID",
+        )
+        created_at = int(time.time())
+        with self._connection() as connection:
+            tag = connection.execute(
+                "SELECT id FROM blessing_tags WHERE id = ?", (blessing_id,)
+            ).fetchone()
+            if tag is None:
+                raise ApiError(404, "BLESSING_NOT_FOUND", "祈福贴纸未在服务端登记")
+            cursor = connection.execute(
+                """
+                INSERT INTO blessing_events(
+                    event_key, blessing_id, recipient_user_id, created_at
+                ) VALUES (?, ?, ?, ?)
+                ON CONFLICT(event_key) DO NOTHING
+                """,
+                (event_key, blessing_id, recipient_user_id, created_at),
+            )
+            duplicate = cursor.rowcount == 0
+            event = self._blessing_event_row(connection, event_key)
+            if (
+                str(event["blessing_id"]) != blessing_id
+                or int(event["recipient_user_id"]) != recipient_user_id
+            ):
+                raise ApiError(409, "EVENT_ID_CONFLICT", "eventId 已被其他祈福事件使用")
+        payload = self._blessing_event_payload(event)
+        return 200, {"duplicate": duplicate, "event": payload}
+
+    def _blessing_history(self) -> tuple[int, dict[str, Any]]:
+        user_id = self._authenticated_user_id()
+        query = """
+            SELECT e.id AS event_id, e.created_at, e.recipient_user_id,
+                   t.id AS blessing_id, t.nickname, t.message, t.package_name,
+                   t.owner_user_id AS sender_user_id,
+                   sender.name AS sender_name, recipient.name AS recipient_name
+            FROM blessing_events AS e
+            JOIN blessing_tags AS t ON t.id = e.blessing_id
+            JOIN users AS sender ON sender.id = t.owner_user_id
+            JOIN users AS recipient ON recipient.id = e.recipient_user_id
+        """
+        with self._connection() as connection:
+            sent_rows = connection.execute(
+                query
+                + " WHERE t.owner_user_id = ?"
+                + " ORDER BY e.created_at DESC, e.id DESC LIMIT 200",
+                (user_id,),
+            ).fetchall()
+            received_rows = connection.execute(
+                query
+                + " WHERE e.recipient_user_id = ?"
+                + " ORDER BY e.created_at DESC, e.id DESC LIMIT 200",
+                (user_id,),
+            ).fetchall()
+        return 200, {
+            "sent": [self._blessing_event_payload(row) for row in sent_rows],
+            "received": [self._blessing_event_payload(row) for row in received_rows],
+        }
+
 def create_app(
     database_path: str | os.PathLike[str] | None = None,
     apk_path: str | os.PathLike[str] | None = None,
@@ -811,6 +1059,9 @@ def create_app(
         service._json_body()
         return api_result(service._logout())
 
+    def me() -> tuple[Response, int]:
+        return api_result(service._me())
+
     def tasbeeh_reset() -> tuple[Response, int]:
         service._json_body()
         return api_result(service._tasbeeh_reset())
@@ -820,6 +1071,18 @@ def create_app(
 
     def tasbeeh_daily() -> tuple[Response, int]:
         return api_result(service._tasbeeh_daily())
+
+    def create_blessing_tag() -> tuple[Response, int]:
+        return api_result(service._create_blessing_tag(service._json_body()))
+
+    def blessing_tag(blessing_id: str) -> tuple[Response, int]:
+        return api_result(service._blessing_tag(blessing_id))
+
+    def receive_blessing() -> tuple[Response, int]:
+        return api_result(service._receive_blessing(service._json_body()))
+
+    def blessing_history() -> tuple[Response, int]:
+        return api_result(service._blessing_history())
 
     def admin_dashboard() -> Response:
         session = service._admin_session()
@@ -890,9 +1153,23 @@ def create_app(
     add_dual_rule("/register", "register", register, ["POST"])
     add_dual_rule("/login", "login", login, ["POST"])
     add_dual_rule("/logout", "logout", logout, ["POST"])
+    add_dual_rule("/me", "me", me, ["GET"])
     add_dual_rule("/tasbeeh/reset", "tasbeeh_reset", tasbeeh_reset, ["POST"])
     add_dual_rule("/tasbeeh/sync", "tasbeeh_sync", tasbeeh_sync, ["POST"])
     add_dual_rule("/tasbeeh/daily", "tasbeeh_daily", tasbeeh_daily, ["GET"])
+    add_dual_rule(
+        "/blessings/tags", "create_blessing_tag", create_blessing_tag, ["POST"]
+    )
+    add_dual_rule(
+        "/blessings/tags/<string:blessing_id>",
+        "blessing_tag",
+        blessing_tag,
+        ["GET"],
+    )
+    add_dual_rule(
+        "/blessings/receive", "receive_blessing", receive_blessing, ["POST"]
+    )
+    add_dual_rule("/blessings", "blessing_history", blessing_history, ["GET"])
     add_dual_rule("/admin/", "admin_dashboard", admin_dashboard, ["GET"])
     add_dual_rule("/admin/user", "admin_user_calendar", admin_user_calendar, ["GET"])
     add_dual_rule("/admin/login", "admin_login", admin_login, ["POST"])

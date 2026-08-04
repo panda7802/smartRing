@@ -226,4 +226,56 @@
     <string name="auth_login_failed">用户名或密码错误</string>
     <string name="auth_network_error">连接服务器失败，请稍后重试</string>
     <string name="auth_session_expired">登录已失效，请重新登录</string>
+    <string name="blessing_entry">祈福 · NFC 祝福贴</string>
+    <string name="blessing_title">祈福</string>
+    <string name="blessing_subtitle">把温暖写进一枚 NFC 贴纸</string>
+    <string name="blessing_write_title">写入祝福</string>
+    <string name="blessing_write_description">输入昵称和祝福语，准备完成后将手机靠近支持 NDEF 的 NFC 贴纸或芯片。</string>
+    <string name="blessing_nickname_hint">你的昵称</string>
+    <string name="blessing_message_hint">写下一句想送给对方的祝福……</string>
+    <string name="blessing_prepare_write">准备写入 NFC</string>
+    <string name="blessing_waiting_for_tag_button">等待 NFC 贴纸</string>
+    <string name="blessing_write_idle">写入时请保持手机和贴纸稳定贴近</string>
+    <string name="blessing_login_required">请先登录账户再使用祈福功能</string>
+    <string name="blessing_nfc_unavailable">这台设备不支持 NFC</string>
+    <string name="blessing_enable_nfc">请先在系统设置中打开 NFC</string>
+    <string name="blessing_fields_required">请填写昵称和祝福语</string>
+    <string name="blessing_nickname_too_long">昵称不能超过 40 个字符</string>
+    <string name="blessing_message_too_long">祝福语不能超过 280 个字符</string>
+    <string name="blessing_registering">正在安全登记这枚祝福贴……</string>
+    <string name="blessing_register_failed">登记失败，请检查网络后重试</string>
+    <string name="blessing_hold_near_tag">准备好了，请将手机贴近 NFC 贴纸并保持不动</string>
+    <string name="blessing_write_success">祝福已成功写入 NFC 贴纸</string>
+    <string name="blessing_write_failed">写入失败，请移开贴纸后重新贴近</string>
+    <string name="blessing_tag_read_only">这枚 NFC 贴纸是只读的，无法写入</string>
+    <string name="blessing_tag_too_small">贴纸容量不足，请缩短祝福语或更换容量更大的芯片</string>
+    <string name="blessing_history_title">祈福记录</string>
+    <string name="blessing_refresh">刷新</string>
+    <string name="blessing_sent_tab">我发起的</string>
+    <string name="blessing_received_tab">我收到的</string>
+    <string name="blessing_history_loading">正在加载祈福记录……</string>
+    <string name="blessing_history_empty">还没有祈福记录</string>
+    <string name="blessing_history_failed">记录加载失败，点击刷新重试</string>
+    <string name="blessing_sent_to">送给 %1$s</string>
+    <string name="blessing_received_from">来自 %1$s</string>
+    <string name="blessing_self_history">自己的祈福 · %1$s</string>
+    <string name="blessing_arrived_title">一份祝福抵达了</string>
+    <string name="blessing_from_nickname">来自 %1$s 的祈福</string>
+    <string name="blessing_invalid_tag">无法识别这枚祈福贴纸</string>
+    <string name="blessing_saved_until_login">祝福已保存在本机，登录后会自动记录</string>
+    <string name="blessing_record_syncing">正在记录这次祈福……</string>
+    <string name="blessing_recorded">这次祈福已记录</string>
+    <string name="blessing_record_pending">已保存在本机，联网后会自动记录</string>
+    <string name="blessing_close">收下祝福</string>
+    <string name="blessing_view_history">查看记录</string>
+    <string name="blessing_cloud_loading_title">正在打开这份祈福</string>
+    <string name="blessing_cloud_loading_message">请稍候，正在从云端取回祝福语……</string>
+    <string name="blessing_cloud_connecting">正在连接祈福云端</string>
+    <string name="blessing_cloud_load_failed_title">暂时没有取到祝福</string>
+    <string name="blessing_cloud_load_failed">请检查网络后重试，这枚贴纸中的 UUID 不会丢失。</string>
+    <string name="blessing_cloud_retry">重新获取</string>
+    <string name="blessing_back_icon" translatable="false">‹</string>
+    <string name="blessing_sparkle_icon" translatable="false">✦</string>
+    <string name="blessing_sparkle_outline_icon" translatable="false">✧</string>
+    <string name="blessing_seal_icon">祈</string>
 </resources>

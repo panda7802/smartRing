@@ -4,6 +4,7 @@ import re
 import sqlite3
 import tempfile
 import unittest
+import uuid
 from contextlib import closing
 from pathlib import Path
 
@@ -78,12 +79,22 @@ class SmartRingApiTests(unittest.TestCase):
             "/smartRing/login",
             "/logout",
             "/smartRing/logout",
+            "/me",
+            "/smartRing/me",
             "/tasbeeh/reset",
             "/smartRing/tasbeeh/reset",
             "/tasbeeh/sync",
             "/smartRing/tasbeeh/sync",
             "/tasbeeh/daily",
             "/smartRing/tasbeeh/daily",
+            "/blessings/tags",
+            "/smartRing/blessings/tags",
+            "/blessings/tags/<string:blessing_id>",
+            "/smartRing/blessings/tags/<string:blessing_id>",
+            "/blessings/receive",
+            "/smartRing/blessings/receive",
+            "/blessings",
+            "/smartRing/blessings",
             "/admin/",
             "/smartRing/admin/",
             "/admin/user",
@@ -143,6 +154,8 @@ class SmartRingApiTests(unittest.TestCase):
                 "admin_users",
                 "admin_sessions",
                 "tasbeeh_daily_counts",
+                "blessing_tags",
+                "blessing_events",
             },
             tables,
         )
@@ -228,6 +241,10 @@ class SmartRingApiTests(unittest.TestCase):
 
     def test_login_and_logout_flow(self):
         token = self.register_and_login()
+        profile = self.client.request("GET", "/me", token=token)
+        self.assertEqual(200, profile["status"])
+        self.assertEqual("alice", profile["json"]["name"])
+        self.assertGreater(profile["json"]["userId"], 0)
         logged_out = self.client.request("POST", "/logout", {}, token)
         self.assertEqual(200, logged_out["status"])
         second_logout = self.client.request("POST", "/logout", {}, token)
@@ -396,6 +413,110 @@ class SmartRingApiTests(unittest.TestCase):
         self.assertEqual({"all": []}, empty["json"])
 
         unauthorized = self.client.request("GET", "/tasbeeh/daily")
+        self.assertEqual(401, unauthorized["status"])
+
+    def test_blessing_scan_is_visible_to_sender_and_recipient(self):
+        alice_token = self.register_and_login("alice", "secret")
+        bob_token = self.register_and_login("bob", "secret")
+
+        created = self.client.request(
+            "POST",
+            "/smartRing/blessings/tags",
+            {
+                "nickname": "小安",
+                "message": "愿你平安喜乐",
+                "packageName": "com.zx.smartring",
+            },
+            alice_token,
+        )
+        self.assertEqual(201, created["status"])
+        blessing_id = created["json"]["blessingId"]
+        self.assertEqual(blessing_id, str(uuid.UUID(blessing_id)))
+        self.assertGreater(created["json"]["senderUserId"], 0)
+
+        fetched = self.client.request(
+            "GET", f"/smartRing/blessings/tags/{blessing_id}"
+        )
+        self.assertEqual(200, fetched["status"])
+        self.assertEqual(created["json"]["nickname"], fetched["json"]["nickname"])
+        self.assertEqual(created["json"]["message"], fetched["json"]["message"])
+        self.assertEqual("com.zx.smartring", fetched["json"]["packageName"])
+
+        received = self.client.request(
+            "POST",
+            "/blessings/receive",
+            {"blessingId": blessing_id, "eventId": "scan-bob-1"},
+            bob_token,
+        )
+        self.assertEqual(200, received["status"])
+        self.assertFalse(received["json"]["duplicate"])
+        self.assertFalse(received["json"]["event"]["isSelf"])
+
+        retry = self.client.request(
+            "POST",
+            "/blessings/receive",
+            {"blessingId": blessing_id, "eventId": "scan-bob-1"},
+            bob_token,
+        )
+        self.assertEqual(200, retry["status"])
+        self.assertTrue(retry["json"]["duplicate"])
+
+        alice_history = self.client.request("GET", "/blessings", token=alice_token)
+        bob_history = self.client.request(
+            "GET", "/smartRing/blessings", token=bob_token
+        )
+        self.assertEqual(1, len(alice_history["json"]["sent"]))
+        self.assertEqual("bob", alice_history["json"]["sent"][0]["recipientName"])
+        self.assertEqual([], alice_history["json"]["received"])
+        self.assertEqual(1, len(bob_history["json"]["received"]))
+        self.assertEqual("alice", bob_history["json"]["received"][0]["senderName"])
+        self.assertEqual([], bob_history["json"]["sent"])
+
+    def test_blessing_keeps_self_scans_and_validates_input(self):
+        token = self.register_and_login()
+        created = self.client.request(
+            "POST",
+            "/blessings/tags",
+            {
+                "nickname": "Alice",
+                "message": "Best wishes",
+                "packageName": "com.zx.smartring",
+            },
+            token,
+        )
+        blessing_id = created["json"]["blessingId"]
+        self_scan = self.client.request(
+            "POST",
+            "/blessings/receive",
+            {"blessingId": blessing_id, "eventId": "self-scan-1"},
+            token,
+        )
+        self.assertEqual(200, self_scan["status"])
+        self.assertTrue(self_scan["json"]["event"]["isSelf"])
+
+        history = self.client.request("GET", "/blessings", token=token)
+        self.assertEqual(1, len(history["json"]["sent"]))
+        self.assertEqual(1, len(history["json"]["received"]))
+
+        invalid = self.client.request(
+            "POST",
+            "/blessings/tags",
+            {"nickname": "", "message": "hello", "packageName": "app"},
+            token,
+        )
+        self.assertEqual(400, invalid["status"])
+        self.assertEqual("INVALID_NICKNAME", invalid["json"]["code"])
+
+        missing = self.client.request(
+            "POST",
+            "/blessings/receive",
+            {"blessingId": "missing", "eventId": "scan-missing"},
+            token,
+        )
+        self.assertEqual(404, missing["status"])
+        missing_detail = self.client.request("GET", "/blessings/tags/missing")
+        self.assertEqual(404, missing_detail["status"])
+        unauthorized = self.client.request("GET", "/blessings")
         self.assertEqual(401, unauthorized["status"])
 
     def test_apk_download_serves_direct_and_public_routes(self):

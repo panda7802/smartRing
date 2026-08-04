@@ -25,6 +25,7 @@ object AuthApi {
         if (token.isEmpty()) {
             throw SmartRingApiException(500, "INVALID_RESPONSE", "登录响应缺少 token")
         }
-        return UserSession(name, token)
+        val userId = response.optLong("userId", 0L).takeIf { it > 0L }
+        return UserSession(name, token, userId)
     }
 }

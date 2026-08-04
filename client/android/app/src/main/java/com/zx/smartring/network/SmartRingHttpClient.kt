@@ -35,13 +35,15 @@ object SmartRingHttpClient {
         }
     }
 
-    fun get(path: String, token: String): JSONObject {
+    fun get(path: String, token: String? = null): JSONObject {
         val connection = (URL(BASE_URL + path).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = CONNECT_TIMEOUT_MS
             readTimeout = READ_TIMEOUT_MS
             setRequestProperty("Accept", "application/json")
-            setRequestProperty("Authorization", "Bearer $token")
+            if (!token.isNullOrBlank()) {
+                setRequestProperty("Authorization", "Bearer $token")
+            }
         }
         return execute(connection)
     }
