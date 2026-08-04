@@ -36,6 +36,7 @@ MAX_BLESSING_NICKNAME_LENGTH = 40
 MAX_BLESSING_MESSAGE_LENGTH = 280
 MAX_PACKAGE_NAME_LENGTH = 255
 MAX_BLESSING_EVENT_KEY_LENGTH = 64
+ADMIN_BLESSING_PAGE_SIZE = 100
 CHINA_TIMEZONE = timezone(timedelta(hours=8))
 
 
@@ -354,13 +355,19 @@ class SmartRingService:
             ".toolbar form{margin:0}.ghost{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35)}"
             ".toolbar-actions{display:flex;align-items:center;gap:10px}.ghost-link{color:#fff;text-decoration:none;"
             "border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:10px 16px;background:rgba(255,255,255,.14)}"
-            ".main{padding:28px 0 48px}.stats{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-bottom:20px}"
+            ".main{padding:28px 0 48px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px}"
             ".stat{padding:20px}.stat strong{display:block;font-size:30px;color:var(--brand);margin-top:6px}.stat span{color:var(--muted)}"
             ".table-card{overflow:hidden}.table-head{padding:20px 22px;border-bottom:1px solid var(--line)}"
             ".table-head h1{font-size:19px}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:15px 22px;"
             "border-bottom:1px solid #edf1ee}th{font-size:13px;color:var(--muted);background:#fafcfb}tbody tr:last-child td{border:0}"
             ".num{font-weight:750;color:var(--brand)}.empty{text-align:center;color:var(--muted);padding:40px}"
             ".action-link{color:var(--brand);font-weight:700;text-decoration:none}.action-link:hover{text-decoration:underline}"
+            ".message-cell{min-width:240px;max-width:420px;white-space:pre-wrap;word-break:break-word;line-height:1.55}"
+            ".uuid{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;color:var(--muted)}"
+            ".badge{display:inline-block;border-radius:999px;padding:4px 9px;background:#e8f5ee;color:var(--brand);"
+            "font-size:12px;font-weight:750}.badge-self{background:#fff2d8;color:#8a5700}"
+            ".pagination{display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;border-top:1px solid var(--line)}"
+            ".pagination span{color:var(--muted)}"
             ".calendar-nav{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:20px 22px;"
             "border-bottom:1px solid var(--line)}.calendar-nav h1{font-size:20px;margin:0;text-align:center}"
             ".month-link{color:var(--brand);font-weight:700;text-decoration:none;border:1px solid var(--line);"
@@ -381,7 +388,7 @@ class SmartRingService:
         error_html = f"<div class='error'>{html.escape(error)}</div>" if error else ""
         content = (
             "<main class='login card'><h1>smartRing 管理后台</h1>"
-            "<p class='hint'>登录后可查看全部注册用户信息。</p>"
+            "<p class='hint'>登录后可查看全部注册用户信息和每次祈福记录。</p>"
             + error_html
             + f"<form method='post' action='{PUBLIC_PREFIX}/admin/login'>"
             "<label for='name'>用户名</label><input id='name' name='name' autocomplete='username' required autofocus>"
@@ -404,6 +411,9 @@ class SmartRingService:
                 ORDER BY created_at DESC, id DESC
                 """
             ).fetchall()
+            total_blessings = int(
+                connection.execute("SELECT COUNT(*) FROM blessing_events").fetchone()[0]
+            )
         total_users = len(rows)
         if rows:
             body_rows = "".join(
@@ -421,11 +431,14 @@ class SmartRingService:
         content = (
             "<header class='top'><div class='wrap toolbar'><div><div class='brand'>smartRing 管理后台</div>"
             f"<div class='sub'>管理员：{html.escape(str(session['name']))}</div></div>"
+            "<div class='toolbar-actions'>"
+            f"<a class='ghost-link' href='{PUBLIC_PREFIX}/admin/blessings'>查看祈福记录</a>"
             f"<form method='post' action='{PUBLIC_PREFIX}/admin/logout'>"
             f"<input type='hidden' name='csrf' value='{html.escape(csrf_token)}'>"
-            "<button class='ghost' type='submit'>退出登录</button></form></div></header>"
+            "<button class='ghost' type='submit'>退出登录</button></form></div></div></header>"
             "<main class='wrap main'><section class='stats'>"
             f"<div class='card stat'><span>注册用户</span><strong>{total_users}</strong></div>"
+            f"<div class='card stat'><span>祈福记录</span><strong>{total_blessings}</strong></div>"
             "</section><section class='card table-card'><div class='table-head'><h1>注册用户信息</h1></div>"
             "<div class='table-scroll'><table><thead><tr><th>用户 ID</th><th>用户名</th>"
             "<th>注册时间</th><th>赞念记录</th></tr></thead><tbody>"
@@ -433,6 +446,126 @@ class SmartRingService:
             + "</tbody></table></div></section></main>"
         )
         return WebResponse(200, self._page("用户信息", content))
+
+    def _admin_blessing_records(
+        self,
+        session: sqlite3.Row,
+        csrf_token: str,
+        page: int,
+    ) -> WebResponse:
+        with self._connection() as connection:
+            summary = connection.execute(
+                """
+                SELECT COUNT(*) AS total,
+                       COUNT(DISTINCT t.owner_user_id) AS sender_count,
+                       COUNT(DISTINCT e.recipient_user_id) AS recipient_count,
+                       COALESCE(SUM(
+                           CASE WHEN t.owner_user_id = e.recipient_user_id THEN 1 ELSE 0 END
+                       ), 0) AS self_count
+                FROM blessing_events AS e
+                JOIN blessing_tags AS t ON t.id = e.blessing_id
+                """
+            ).fetchone()
+            total = int(summary["total"])
+            total_pages = max(
+                1,
+                (total + ADMIN_BLESSING_PAGE_SIZE - 1) // ADMIN_BLESSING_PAGE_SIZE,
+            )
+            if page > total_pages:
+                return WebResponse(
+                    404,
+                    self._page(
+                        "页码不存在",
+                        "<main class='login card'><h1>页码不存在</h1>"
+                        f"<p class='hint'><a class='action-link' href='{PUBLIC_PREFIX}/admin/blessings'>"
+                        "返回祈福记录</a></p></main>",
+                    ),
+                )
+            offset = (page - 1) * ADMIN_BLESSING_PAGE_SIZE
+            rows = connection.execute(
+                """
+                SELECT e.id AS event_id, e.created_at,
+                       t.id AS blessing_id, t.nickname, t.message, t.package_name,
+                       t.owner_user_id AS sender_user_id,
+                       sender.name AS sender_name,
+                       e.recipient_user_id, recipient.name AS recipient_name
+                FROM blessing_events AS e
+                JOIN blessing_tags AS t ON t.id = e.blessing_id
+                JOIN users AS sender ON sender.id = t.owner_user_id
+                JOIN users AS recipient ON recipient.id = e.recipient_user_id
+                ORDER BY e.created_at DESC, e.id DESC
+                LIMIT ? OFFSET ?
+                """,
+                (ADMIN_BLESSING_PAGE_SIZE, offset),
+            ).fetchall()
+
+        if rows:
+            body_parts = []
+            for row in rows:
+                record_type = (
+                    "<span class='badge badge-self'>自祈福</span>"
+                    if int(row["sender_user_id"]) == int(row["recipient_user_id"])
+                    else "<span class='badge'>已接收</span>"
+                )
+                body_parts.append(
+                    "".join(
+                        (
+                            "<tr>",
+                            f"<td class='num'>{int(row['event_id'])}</td>",
+                            f"<td>{self._china_time(int(row['created_at']))}</td>",
+                            f"<td>{html.escape(str(row['sender_name']))}<br>",
+                            f"<span class='uuid'>ID {int(row['sender_user_id'])}</span></td>",
+                            f"<td>{html.escape(str(row['recipient_name']))}<br>",
+                            f"<span class='uuid'>ID {int(row['recipient_user_id'])}</span></td>",
+                            f"<td>{html.escape(str(row['nickname']))}</td>",
+                            f"<td class='message-cell'>{html.escape(str(row['message']))}</td>",
+                            f"<td><span class='uuid'>{html.escape(str(row['blessing_id']))}</span><br>",
+                            f"<span class='uuid'>{html.escape(str(row['package_name']))}</span></td>",
+                            f"<td>{record_type}</td>",
+                            "</tr>",
+                        )
+                    )
+                )
+            body_rows = "".join(body_parts)
+        else:
+            body_rows = "<tr><td class='empty' colspan='8'>暂无祈福记录</td></tr>"
+
+        pagination_parts = []
+        if page > 1:
+            pagination_parts.append(
+                f"<a class='month-link' href='{PUBLIC_PREFIX}/admin/blessings?page={page - 1}'>← 上一页</a>"
+            )
+        pagination_parts.append(f"<span>第 {page} / {total_pages} 页</span>")
+        if page < total_pages:
+            pagination_parts.append(
+                f"<a class='month-link' href='{PUBLIC_PREFIX}/admin/blessings?page={page + 1}'>下一页 →</a>"
+            )
+
+        content = (
+            "<header class='top'><div class='wrap toolbar'><div>"
+            "<div class='brand'>smartRing 祈福记录</div>"
+            f"<div class='sub'>管理员：{html.escape(str(session['name']))} · 每页最多 "
+            f"{ADMIN_BLESSING_PAGE_SIZE} 条</div></div>"
+            "<div class='toolbar-actions'>"
+            f"<a class='ghost-link' href='{PUBLIC_PREFIX}/admin/'>返回用户列表</a>"
+            f"<form method='post' action='{PUBLIC_PREFIX}/admin/logout'>"
+            f"<input type='hidden' name='csrf' value='{html.escape(csrf_token)}'>"
+            "<button class='ghost' type='submit'>退出登录</button></form></div></div></header>"
+            "<main class='wrap main'><section class='stats'>"
+            f"<div class='card stat'><span>祈福总次数</span><strong>{total}</strong></div>"
+            f"<div class='card stat'><span>发送用户</span><strong>{int(summary['sender_count'])}</strong></div>"
+            f"<div class='card stat'><span>接收用户</span><strong>{int(summary['recipient_count'])}</strong></div>"
+            f"<div class='card stat'><span>自祈福</span><strong>{int(summary['self_count'])}</strong></div>"
+            "</section><section class='card table-card'><div class='table-head'>"
+            "<h1>全部发送与接收记录</h1></div><div class='table-scroll'><table>"
+            "<thead><tr><th>记录 ID</th><th>接收时间</th><th>发送方</th><th>接收方</th>"
+            "<th>贴纸昵称</th><th>祝福语</th><th>贴纸 / 应用</th><th>类型</th></tr></thead><tbody>"
+            + body_rows
+            + "</tbody></table></div><nav class='pagination'>"
+            + "".join(pagination_parts)
+            + "</nav></section></main>"
+        )
+        return WebResponse(200, self._page("祈福记录", content))
 
     def _admin_user_calendar(
         self,
@@ -1142,6 +1275,37 @@ def create_app(
             )
         )
 
+    def admin_blessing_records() -> Response:
+        session = service._admin_session()
+        if session is None:
+            return html_result(service._admin_login_page())
+        page_value = request.args.get("page", "1")
+        if (
+            len(page_value) > 9
+            or not page_value.isascii()
+            or not page_value.isdigit()
+            or int(page_value) <= 0
+        ):
+            return html_result(
+                WebResponse(
+                    400,
+                    service._page(
+                        "页码参数错误",
+                        "<main class='login card'><h1>页码参数错误</h1>"
+                        "<p class='hint'>page 必须是正整数。</p></main>",
+                    ),
+                )
+            )
+        csrf_token = secrets.token_urlsafe(24)
+        with service._connection() as connection:
+            connection.execute(
+                "UPDATE admin_sessions SET csrf_hash = ? WHERE id = ?",
+                (token_hash(csrf_token), int(session["id"])),
+            )
+        return html_result(
+            service._admin_blessing_records(session, csrf_token, int(page_value))
+        )
+
     def admin_logout() -> Response:
         session = service._admin_session()
         if session is None:
@@ -1172,6 +1336,9 @@ def create_app(
     add_dual_rule("/blessings", "blessing_history", blessing_history, ["GET"])
     add_dual_rule("/admin/", "admin_dashboard", admin_dashboard, ["GET"])
     add_dual_rule("/admin/user", "admin_user_calendar", admin_user_calendar, ["GET"])
+    add_dual_rule(
+        "/admin/blessings", "admin_blessing_records", admin_blessing_records, ["GET"]
+    )
     add_dual_rule("/admin/login", "admin_login", admin_login, ["POST"])
     add_dual_rule("/admin/logout", "admin_logout", admin_logout, ["POST"])
 

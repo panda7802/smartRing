@@ -99,6 +99,8 @@ class SmartRingApiTests(unittest.TestCase):
             "/smartRing/admin/",
             "/admin/user",
             "/smartRing/admin/user",
+            "/admin/blessings",
+            "/smartRing/admin/blessings",
             "/app/sr.apk",
             "/smartRing/app/sr.apk",
         ):
@@ -647,6 +649,77 @@ class SmartRingApiTests(unittest.TestCase):
                 "SELECT passwd_md5 FROM admin_users WHERE name = ?", ("pangt",)
             ).fetchone()[0]
         self.assertEqual(hashlib.md5(b"pangt123").hexdigest(), stored)
+
+    def test_admin_displays_every_blessing_send_and_receive_record(self):
+        alice_token = self.register_and_login("alice", "secret")
+        bob_token = self.register_and_login("bob", "secret")
+        created = self.client.request(
+            "POST",
+            "/blessings/tags",
+            {
+                "nickname": "<小安>",
+                "message": "<script>愿你平安</script>",
+                "packageName": "com.zx.smartring",
+            },
+            alice_token,
+        )
+        self.assertEqual(201, created["status"])
+        blessing_id = created["json"]["blessingId"]
+        received = self.client.request(
+            "POST",
+            "/blessings/receive",
+            {"blessingId": blessing_id, "eventId": "admin-bob-scan"},
+            bob_token,
+        )
+        self.assertEqual(200, received["status"])
+        self_scan = self.client.request(
+            "POST",
+            "/blessings/receive",
+            {"blessingId": blessing_id, "eventId": "admin-self-scan"},
+            alice_token,
+        )
+        self.assertEqual(200, self_scan["status"])
+
+        protected = self.client.request("GET", "/smartRing/admin/blessings")
+        self.assertEqual(200, protected["status"])
+        self.assertIn("smartRing 管理后台", protected["text"])
+        self.assertNotIn("全部发送与接收记录", protected["text"])
+
+        self.service.set_admin("pangt", "pangt123")
+        logged_in = self.client.request(
+            "POST",
+            "/smartRing/admin/login",
+            form={"name": "pangt", "passwd": "pangt123"},
+        )
+        self.assertEqual(303, logged_in["status"])
+
+        dashboard = self.client.request("GET", "/smartRing/admin/")
+        self.assertEqual(200, dashboard["status"])
+        self.assertIn("查看祈福记录", dashboard["text"])
+        self.assertIn("/smartRing/admin/blessings", dashboard["text"])
+
+        records = self.client.request("GET", "/smartRing/admin/blessings?page=1")
+        self.assertEqual(200, records["status"])
+        self.assertIn("smartRing 祈福记录", records["text"])
+        self.assertIn("全部发送与接收记录", records["text"])
+        self.assertIn("祈福总次数</span><strong>2</strong>", records["text"])
+        self.assertIn("发送用户</span><strong>1</strong>", records["text"])
+        self.assertIn("接收用户</span><strong>2</strong>", records["text"])
+        self.assertIn("自祈福</span><strong>1</strong>", records["text"])
+        self.assertIn("alice", records["text"])
+        self.assertIn("bob", records["text"])
+        self.assertIn(blessing_id, records["text"])
+        self.assertIn("com.zx.smartring", records["text"])
+        self.assertIn("&lt;小安&gt;", records["text"])
+        self.assertIn("&lt;script&gt;愿你平安&lt;/script&gt;", records["text"])
+        self.assertNotIn("<script>愿你平安</script>", records["text"])
+        self.assertIn("自祈福", records["text"])
+        self.assertIn("已接收", records["text"])
+
+        invalid_page = self.client.request("GET", "/smartRing/admin/blessings?page=0")
+        self.assertEqual(400, invalid_page["status"])
+        missing_page = self.client.request("GET", "/smartRing/admin/blessings?page=2")
+        self.assertEqual(404, missing_page["status"])
 
 
 if __name__ == "__main__":
